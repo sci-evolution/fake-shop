@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgre
+  labels:
+    app: postgre
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgre
+  template:
+    metadata:
+      labels:
+        app: postgre
+    spec:
+      containers:
+      - name: postgre
+        image: postgres:latest
+        ports:
+        - containerPort: 5432
+        env:
+          - name: POSTGRES_USER
+            value: ecommerce
+          - name: POSTGRES_PASSWORD
+            value: Pg1234
+          - name: POSTGRES_DB
+            value: ecommerce
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fake-shop
+  labels:
+    app: fake-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fake-shop
+  template:
+    metadata:
+      labels:
+        app: fake-shop
+    spec:
+      initContainers:
+        - name: wait-for-postgre
+          image: busybox
+          command: ["sh", "-c", "until nc -z postgre 5432; do echo waiting for postgre; sleep 5; done;"]
+      containers:
+      - name: fake-shop
+        image: wellingtonevolution/fake-shop:latest
+        ports:
+        - containerPort: 5000
+        env:
+          - name: FLASK_APP
+            value: index.py
+          - name: DB_HOST
+            value: postgre
+          - name: DB_PORT
+            value: "5432"
+          - name: DB_USER
+            value: ecommerce
+          - name: DB_PASSWORD
+            value: Pg1234
+          - name: DB_NAME
+            value: ecommerce
